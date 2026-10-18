@@ -1,0 +1,32 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+venv/
+.venv/
+env/
+ENV/
+.env
+
+# User uploaded / working files
+uploads/*
+!uploads/.gitkeep
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.swp
+*.swo
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Tag Studio & Keyword Cleaner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e1e24; }
+    ::-webkit-scrollbar-thumb { background: #3f3f4e; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #55556a; }
+  </style>
+</head>
+<body class="bg-[#121216] text-gray-200 min-h-screen flex flex-col font-sans select-none">
+
+  <!-- Hidden Native Browser Inputs -->
+  <input type="file" id="browserFolderPicker" webkitdirectory directory multiple class="hidden" onchange="handleFolderSelect(event)">
+  <input type="file" id="browserFilePicker" multiple accept=".mp3,.flac,.m4a,.ogg,.wav" class="hidden" onchange="handleFilesSelect(event)">
+
+  <!-- Header / Navigation Bar -->
+  <header class="bg-[#1a1a22] border-b border-gray-800 px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-amber-700 rounded-lg flex items-center justify-center text-black font-bold text-lg shadow">
+        <i class="fa-solid fa-music"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-wide">Audio Tag Studio</h1>
+        <p class="text-xs text-gray-400">Song Property Editor • Global Keyword Remover • Online Cover Art</p>
+      </div>
+    </div>
+
+    <!-- Actions & Selectors -->
+    <div class="flex items-center flex-wrap gap-2">
+      
+      <!-- Pick Folder (Browser Native) -->
+      <button onclick="document.getElementById('browserFolderPicker').click()" class="bg-amber-600 hover:bg-amber-500 text-black px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
+        <i class="fa-solid fa-folder-open"></i> Select Music Folder
+      </button>
+
+      <!-- Pick Files (Browser Native) -->
+      <button onclick="document.getElementById('browserFilePicker').click()" class="bg-[#2a2a38] hover:bg-[#343446] text-gray-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-gray-700 transition active:scale-95 shadow">
+        <i class="fa-solid fa-file-audio text-amber-400"></i> Select Audio Files
+      </button>
+
+      <!-- Open Uploads Folder in Explorer -->
+      <button onclick="openUploadsFolder()" title="Open the folder containing your cleaned songs in Windows Explorer" class="bg-[#242430] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs border border-gray-700 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-folder-tree text-blue-400"></i> Open Cleaned Folder
+      </button>
+
+      <!-- Export All to Folder -->
+      <button onclick="exportAllSongs()" title="Copy all cleaned songs to any folder on your computer" class="bg-[#242430] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs border border-gray-700 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-file-export text-emerald-400"></i> Export All
+      </button>
+
+      <!-- Direct Path Scan Input -->
+      <div class="flex items-center bg-[#242430] border border-gray-700 rounded-lg overflow-hidden ml-2">
+        <input id="folderPathInput" type="text" placeholder="Folder path (e.g. C:/Music or ~/Music)" 
+          class="bg-transparent px-3 py-1.5 text-xs text-gray-200 w-60 focus:outline-none"
+          onkeydown="if(event.key==='Enter') scanPath()">
+        
+        <button onclick="quickFillFolder('downloads')" title="1-Click: Scan Downloads Folder" class="px-2.5 py-1.5 hover:bg-gray-700 text-gray-300 hover:text-amber-400 text-xs border-l border-gray-700 flex items-center gap-1">
+          <i class="fa-solid fa-download text-blue-400"></i> Downloads
+        </button>
+
+        <button onclick="quickFillFolder('music')" title="1-Click: Scan Music Folder" class="px-2.5 py-1.5 hover:bg-gray-700 text-gray-300 hover:text-amber-400 text-xs border-l border-gray-700 flex items-center gap-1">
+          <i class="fa-solid fa-music text-amber-400"></i> Music
+        </button>
+
+        <button onclick="scanPath()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 text-xs font-semibold border-l border-gray-700 transition">
+          Scan
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Global Keyword Cleaner Bar -->
+  <section class="bg-[#1c1c26] border-b border-amber-500/20 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-inner">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
+        <i class="fa-solid fa-eraser mr-1.5"></i> Global Keyword Remover
+      </span>
+      <span class="text-xs text-gray-400 hidden sm:inline">Strips keyword across Title, Artist, Album, Genre & Comments</span>
+    </div>
+
+    <div class="flex items-center gap-3 flex-1 max-w-2xl justify-end">
+      <div class="relative flex-1 max-w-md">
+        <i class="fa-solid fa-tag absolute left-3 top-2.5 text-gray-500 text-xs"></i>
+        <input id="keywordInput" type="text" placeholder="Type keyword to remove (e.g. [SongsLover.com], 320kbps, feat)..." 
+          class="w-full bg-[#14141a] border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-amber-300 placeholder-gray-500 focus:outline-none focus:border-amber-500"
+          onkeydown="if(event.key==='Enter') removeKeyword()">
+      </div>
+
+      <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+        <input type="checkbox" id="cleanBracketsCheckbox" checked class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
+        Clean brackets/dashes
+      </label>
+
+      <button onclick="removeKeyword()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5 transition active:scale-95">
+        <i class="fa-solid fa-trash-can"></i> Remove from All Areas
+      </button>
+    </div>
+  </section>
+
+  <!-- Main Workspace: Split View -->
+  <main class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Column: File List -->
+    <div class="w-1/2 lg:w-5/12 border-r border-gray-800 flex flex-col bg-[#141419]" id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div class="p-3 border-b border-gray-800 flex items-center justify-between bg-[#181820]">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="rounded bg-gray-800 border-gray-700 text-amber-500">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400" id="fileCountBadge">0 Tracks</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="document.getElementById('browserFilePicker').click()" class="text-xs bg-[#242432] hover:bg-gray-700 px-2.5 py-1 rounded text-gray-300 border border-gray-700 transition">
+            <i class="fa-solid fa-plus text-amber-400 mr-1"></i> Add Songs
+          </button>
+        </div>
+      </div>
+
+      <!-- Tracks Table -->
+      <div class="flex-1 overflow-y-auto divide-y divide-gray-800/60" id="trackListContainer">
+        <div class="p-8 text-center text-gray-500 text-sm flex flex-col items-center justify-center h-full">
+          <i class="fa-solid fa-compact-disc text-4xl mb-3 text-gray-600 animate-spin-slow"></i>
+          <p class="font-medium text-gray-400">No audio files loaded yet.</p>
+          <p class="text-xs text-gray-500 mt-2 max-w-xs">
+            Click <b>Select Music Folder</b> or <b>Select Audio Files</b> above, or drag and drop audio files directly here.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Song Properties & Cover Art -->
+    <div class="w-1/2 lg:w-7/12 flex flex-col bg-[#16161d] overflow-y-auto p-6" id="editorContainer">
+      <div id="noSelectionNotice" class="flex flex-col items-center justify-center h-full text-gray-500">
+        <i class="fa-solid fa-sliders text-5xl mb-3 text-gray-700"></i>
+        <p class="text-sm">Select a song from the list to view and adjust its properties.</p>
+      </div>
+
+      <!-- Active Track Editor -->
+      <div id="activeEditor" class="hidden space-y-6">
+        
+        <!-- Track Header Banner -->
+        <div class="flex items-start justify-between bg-[#1d1d27] p-4 rounded-xl border border-gray-800 shadow">
+          <div class="flex gap-4 items-center">
+            <!-- Cover Art Display / Lookup trigger -->
+            <div class="relative group cursor-pointer w-24 h-24 rounded-lg bg-[#272736] overflow-hidden flex-shrink-0 border border-gray-700 shadow" onclick="openCoverModal()">
+              <img id="activeCoverImg" src="" alt="Album Art" class="w-full h-full object-cover hidden">
+              <div id="activeCoverPlaceholder" class="w-full h-full flex flex-col items-center justify-center text-gray-500 text-xs text-center p-2">
+                <i class="fa-solid fa-image text-2xl mb-1 text-gray-600"></i>
+                <span>No Cover</span>
+              </div>
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-amber-400 text-xs font-semibold transition">
+                <i class="fa-solid fa-cloud-arrow-down text-lg mb-1"></i>
+                <span>Change Art</span>
+              </div>
+            </div>
+
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span id="activeFormatBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-amber-400 uppercase">MP3</span>
+                <span id="activeModeBadge" class="text-[10px] font-medium px-2 py-0.5 rounded"></span>
+              </div>
+              <h2 id="displayTitle" class="text-lg font-bold text-white mt-1 leading-snug truncate max-w-md">Song Title</h2>
+              <p id="displayArtist" class="text-xs text-gray-400 truncate max-w-md">Artist Name</p>
+              <p id="displayFilepath" class="text-[11px] text-gray-500 font-mono mt-1 truncate max-w-md" title="File location on disk"></p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 items-end">
+            <!-- Cover Art Lookup Button -->
+            <button onclick="openCoverModal()" class="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-2 transition active:scale-95">
+              <i class="fa-solid fa-magnifying-glass"></i> Lookup Cover Art Online
+            </button>
+
+            <div class="flex gap-2">
+              <!-- Reveal in Explorer Button -->
+              <button onclick="openInExplorer()" class="text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-xs border border-gray-700 hover:bg-gray-800 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-folder-tree text-amber-400"></i> Show in Explorer
+              </button>
+
+              <!-- Download Button -->
+              <a id="btnDownloadFile" href="#" class="text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-xs border border-gray-700 hover:bg-gray-800 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-download text-blue-400"></i> Download
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metadata Form -->
+        <div class="bg-[#1c1c26] p-5 rounded-xl border border-gray-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-pen-to-square text-amber-400"></i> Song Properties (Universal Player Compatible)
+            </h3>
+            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              <i class="fa-solid fa-check-double mr-1"></i> ID3v2.3 + ID3v1 Synced
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-medium text-gray-400 mb-1">Song Title</label>
+              <input id="editTitle" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-medium text-gray-400 mb-1">Artist</label>
+              <input id="editArtist" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-medium text-gray-400 mb-1">Album</label>
+              <input id="editAlbum" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-medium text-gray-400 mb-1">Album Artist</label>
+              <input id="editAlbumArtist" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Genre</label>
+              <input id="editGenre" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Year</label>
+                <input id="editYear" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Track #</label>
+                <input id="editTrack" type="text" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+              </div>
+            </div>
+
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-gray-400 mb-1">Comment</label>
+              <textarea id="editComment" rows="2" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button onclick="saveActiveProperties()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-2 transition active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> Save Song Properties
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Online Cover Art Lookup Modal -->
+  <div id="coverModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#1b1b24] border border-gray-800 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-gray-800 flex items-center justify-between bg-[#20202c]">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-down text-amber-400 text-lg"></i>
+          <h3 class="text-sm font-bold text-white">Online Album Cover Lookup</h3>
+        </div>
+        <button onclick="closeCoverModal()" class="text-gray-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Search Input Controls -->
+      <div class="p-4 border-b border-gray-800/80 bg-[#16161f] flex gap-2">
+        <input id="coverSearchQuery" type="text" placeholder="Search by Artist, Album, or Track..." 
+          class="flex-1 bg-[#242433] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+          onkeydown="if(event.key === 'Enter') executeCoverSearch()">
+        <button onclick="executeCoverSearch()" class="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+          <i class="fa-solid fa-search"></i> Search Online
+        </button>
+      </div>
+
+      <!-- Results Grid -->
+      <div id="coverResultsContainer" class="p-6 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <!-- Results injected here -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 border-t border-gray-800 bg-[#181822] flex justify-between items-center text-xs text-gray-500">
+        <span>Click any artwork to apply and permanently embed it into the audio file.</span>
+        <button onclick="closeCoverModal()" class="px-4 py-1.5 rounded bg-gray-800 text-gray-300 hover:bg-gray-700">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs transform transition-all duration-300 translate-y-20 opacity-0 z-50">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg">Message</span>
+  </div>
+
+  <script>
+    let tracks = [];
+    let activeTrackIndex = null;
+    let selectedIndices = new Set();
+
+    // Safe predefined paths without backslash escaping problems
+    const commonPaths = {
+      music: "{{ common_folders.music }}",
+      downloads: "{{ common_folders.downloads }}",
+      desktop: "{{ common_folders.desktop }}"
+    };
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toastIcon');
+      const text = document.getElementById('toastMsg');
+      text.innerText = msg;
+      icon.className = isError ? "fa-solid fa-triangle-exclamation text-rose-500 text-base" : "fa-solid fa-circle-check text-emerald-400 text-base";
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
+    }
+
+    function quickFillFolder(type) {
+      const target = commonPaths[type];
+      if (target) {
+        document.getElementById('folderPathInput').value = target;
+        scanPath();
+      }
+    }
+
+    // Direct Browser Folder Picker (webkitdirectory)
+    function handleFolderSelect(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+      uploadAudioBatch(files, `Reading ${files.length} file(s) from selected folder...`);
+    }
+
+    // Direct Browser File Picker
+    function handleFilesSelect(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+      uploadAudioBatch(files, `Reading ${files.length} selected song(s)...`);
+    }
+
+    // Unified Batch Upload & Process
+    async function uploadAudioBatch(fileList, msg) {
+      const audioFiles = Array.from(fileList).filter(f => {
+        const ext = f.name.toLowerCase().split('.').pop();
+        return ['mp3', 'flac', 'm4a', 'mp4', 'ogg', 'wav'].includes(ext);
+      });
+
+      if (audioFiles.length === 0) {
+        showToast("No supported audio files found in selection.", true);
+        return;
+      }
+
+      showToast(msg || `Loading ${audioFiles.length} songs...`);
+      const formData = new FormData();
+      for (let f of audioFiles) {
+        formData.append('files', f);
+      }
+
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.tracks && data.tracks.length > 0) {
+          tracks = tracks.concat(data.tracks);
+          renderTrackList();
+          showToast(`Successfully loaded ${data.tracks.length} track(s)!`);
+          if (activeTrackIndex === null) selectTrack(tracks.length - data.tracks.length);
+        } else {
+          showToast("Failed to process audio files: " + (data.error || "Unknown"), true);
+        }
+      } catch (e) {
+        showToast("Upload error: " + e, true);
+      }
+    }
+
+    // Drag and Drop
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.add('bg-[#1a1a24]', 'border-amber-500/50');
+    }
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('bg-[#1a1a24]', 'border-amber-500/50');
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('bg-[#1a1a24]', 'border-amber-500/50');
+      if (e.dataTransfer && e.dataTransfer.files) {
+        uploadAudioBatch(e.dataTransfer.files, `Processing ${e.dataTransfer.files.length} dropped file(s)...`);
+      }
+    }
+
+    // Scan disk folder path directly
+    async function scanPath() {
+      let folder = document.getElementById('folderPathInput').value.trim();
+      if (!folder) {
+        folder = commonPaths.music;
+        document.getElementById('folderPathInput').value = folder;
+      }
+
+      showToast(`Scanning "${folder}"...`);
+      try {
+        const resp = await fetch('/api/scan', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ folder: folder })
+        });
+        const data = await resp.json();
+        if (data.tracks && data.tracks.length > 0) {
+          tracks = data.tracks;
+          selectedIndices.clear();
+          renderTrackList();
+          showToast(`Found and loaded ${tracks.length} track(s) from disk!`);
+          selectTrack(0);
+        } else if (data.tracks && data.tracks.length === 0) {
+          showToast(`No MP3/FLAC/M4A songs found in "${folder}".`, true);
+        } else {
+          showToast(data.error || "Failed to scan folder", true);
+        }
+      } catch (err) {
+        showToast("Error connecting to server: " + err, true);
+      }
+    }
+
+    async function openInExplorer() {
+      if (activeTrackIndex === null) return;
+      const t = tracks[activeTrackIndex];
+      try {
+        const resp = await fetch('/api/open-in-explorer', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ filepath: t.filepath })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          showToast("📂 Opened location in Windows Explorer!");
+        } else {
+          showToast(data.error || "Could not open Explorer", true);
+        }
+      } catch (err) {
+        showToast("Could not open explorer: " + err, true);
+      }
+    }
+
+    async function openUploadsFolder() {
+      try {
+        const resp = await fetch('/api/open-uploads-folder', { method: 'POST' });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          showToast("📂 Opened Cleaned Songs folder in Windows Explorer!");
+        } else {
+          showToast(data.error || "Could not open folder", true);
+        }
+      } catch (err) {
+        showToast("Could not open folder: " + err, true);
+      }
+    }
+
+    async function exportAllSongs() {
+      if (tracks.length === 0) {
+        showToast("No songs loaded to export.", true);
+        return;
+      }
+      const targetFolder = prompt(
+        "Enter destination folder path to export all cleaned songs:\n(e.g., C:\\Music\\Cleaned or D:\\CleanedMusic)",
+        commonPaths.music + "/Cleaned"
+      );
+      if (!targetFolder || !targetFolder.trim()) return;
+
+      showToast(`Exporting ${tracks.length} song(s) to ${targetFolder}...`);
+      try {
+        const resp = await fetch('/api/export-all', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            target_folder: targetFolder.trim(),
+            filepaths: tracks.map(t => t.filepath)
+          })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          showToast(`✅ Exported ${data.copied} song(s) to ${data.target_folder}!`);
+        } else {
+          showToast(data.error || "Export failed", true);
+        }
+      } catch (err) {
+        showToast("Export error: " + err, true);
+      }
+    }
+
+    function renderTrackList() {
+      const container = document.getElementById('trackListContainer');
+      document.getElementById('fileCountBadge').innerText = `${tracks.length} Tracks`;
+
+      if (tracks.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-gray-500 text-sm flex flex-col items-center justify-center h-full">
+            <i class="fa-solid fa-compact-disc text-4xl mb-3 text-gray-600 animate-spin-slow"></i>
+            <p class="font-medium text-gray-400">No audio files loaded yet.</p>
+            <p class="text-xs text-gray-500 mt-2 max-w-xs">
+              Click <b>Select Music Folder</b> or <b>Select Audio Files</b> above, or drag and drop audio files directly here.
+            </p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = tracks.map((t, idx) => `
+        <div class="p-3 flex items-center gap-3 hover:bg-[#1c1c24] cursor-pointer transition ${activeTrackIndex === idx ? 'bg-[#22222e] border-l-4 border-amber-500' : ''}" onclick="selectTrack(${idx})">
+          <input type="checkbox" ${selectedIndices.has(idx) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${idx})" class="rounded bg-gray-800 border-gray-700 text-amber-500">
+          
+          <div class="w-10 h-10 rounded bg-[#272733] overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-800">
+            ${t.cover_data_uri ? `<img src="${t.cover_data_uri}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-music text-gray-600"></i>`}
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-white truncate">${t.title || t.filename}</span>
+              ${t.is_uploaded ? 
+                `<span class="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" title="Working copy in Cleaned Folder"></span>` : 
+                `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" title="Direct local disk file"></span>`}
+            </div>
+            <div class="text-[11px] text-gray-400 truncate">${t.artist || 'Unknown Artist'} • <span class="text-gray-500">${t.album || 'No Album'}</span></div>
+          </div>
+
+          <div class="text-[10px] text-gray-500 font-mono">
+            ${t.duration ? Math.floor(t.duration/60) + ':' + (t.duration%60).toString().padStart(2, '0') : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectTrack(idx) {
+      activeTrackIndex = idx;
+      renderTrackList();
+      const t = tracks[idx];
+      if (!t) return;
+
+      document.getElementById('noSelectionNotice').classList.add('hidden');
+      document.getElementById('activeEditor').classList.remove('hidden');
+
+      document.getElementById('displayTitle').innerText = t.title || t.filename;
+      document.getElementById('displayArtist').innerText = t.artist || "Unknown Artist";
+      document.getElementById('displayFilepath').innerText = t.filepath;
+      document.getElementById('activeFormatBadge').innerText = t.format.toUpperCase();
+
+      const modeBadge = document.getElementById('activeModeBadge');
+      if (modeBadge) {
+        if (t.is_uploaded) {
+          modeBadge.className = "text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30";
+          modeBadge.innerHTML = `<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Working Copy (Saved in Cleaned Folder)`;
+          modeBadge.title = "Uploaded song. Edits are saved in the app's Cleaned Folder. Click 'Open Cleaned Folder' or 'Download' to get it.";
+        } else {
+          modeBadge.className = "text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+          modeBadge.innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i> Direct Disk File (In-Place Mode)`;
+          modeBadge.title = "Direct hard drive file: Any tag or cover changes are written directly to your original file. No download needed!";
+        }
+      }
+
+      document.getElementById('editTitle').value = t.title || '';
+      document.getElementById('editArtist').value = t.artist || '';
+      document.getElementById('editAlbum').value = t.album || '';
+      document.getElementById('editAlbumArtist').value = t.album_artist || '';
+      document.getElementById('editGenre').value = t.genre || '';
+      document.getElementById('editYear').value = t.year || '';
+      document.getElementById('editTrack').value = t.track_number || '';
+      document.getElementById('editComment').value = t.comment || '';
+
+      const coverImg = document.getElementById('activeCoverImg');
+      const placeholder = document.getElementById('activeCoverPlaceholder');
+      if (t.cover_data_uri) {
+        coverImg.src = t.cover_data_uri;
+        coverImg.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      } else {
+        coverImg.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+      }
+
+      // Download Button
+      const btnDownload = document.getElementById('btnDownloadFile');
+      btnDownload.href = `/api/download?path=${encodeURIComponent(t.filepath)}`;
+    }
+
+    function toggleSelect(idx) {
+      if (selectedIndices.has(idx)) selectedIndices.delete(idx);
+      else selectedIndices.add(idx);
+      renderTrackList();
+    }
+
+    function toggleSelectAll(checkbox) {
+      if (checkbox.checked) {
+        tracks.forEach((_, idx) => selectedIndices.add(idx));
+      } else {
+        selectedIndices.clear();
+      }
+      renderTrackList();
+    }
+
+    async function saveActiveProperties() {
+      if (activeTrackIndex === null) return;
+      const t = tracks[activeTrackIndex];
+      const payload = {
+        filepath: t.filepath,
+        tags: {
+          title: document.getElementById('editTitle').value,
+          artist: document.getElementById('editArtist').value,
+          album: document.getElementById('editAlbum').value,
+          album_artist: document.getElementById('editAlbumArtist').value,
+          genre: document.getElementById('editGenre').value,
+          year: document.getElementById('editYear').value,
+          track_number: document.getElementById('editTrack').value,
+          comment: document.getElementById('editComment').value
+        }
+      };
+
+      try {
+        const resp = await fetch('/api/save-tags', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (data.success && data.track) {
+          tracks[activeTrackIndex] = data.track;
+          selectTrack(activeTrackIndex);
+          if (data.track.is_uploaded) {
+            showToast("Saved properties to Cleaned Folder! (Click 'Open Cleaned Folder' or Download)");
+          } else {
+            showToast("Saved properties directly to disk file in-place! (No download needed)");
+          }
+        } else {
+          showToast(data.error || "Failed to save", true);
+        }
+      } catch (err) {
+        showToast("Error saving: " + err, true);
+      }
+    }
+
+    async function removeKeyword() {
+      const keyword = document.getElementById('keywordInput').value.trim();
+      if (!keyword) {
+        showToast("Please enter a keyword to remove.", true);
+        return;
+      }
+
+      const cleanBrackets = document.getElementById('cleanBracketsCheckbox').checked;
+
+      let targetFilepaths = [];
+      if (selectedIndices.size > 0) {
+        selectedIndices.forEach(idx => targetFilepaths.push(tracks[idx].filepath));
+      } else if (activeTrackIndex !== null) {
+        targetFilepaths.push(tracks[activeTrackIndex].filepath);
+      } else if (tracks.length > 0) {
+        targetFilepaths = tracks.map(t => t.filepath);
+      } else {
+        showToast("No songs loaded to clean.", true);
+        return;
+      }
+
+      showToast(`Removing "${keyword}" from ${targetFilepaths.length} file(s)...`);
+
+      try {
+        const resp = await fetch('/api/remove-keyword', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            filepaths: targetFilepaths,
+            keyword: keyword,
+            clean_brackets: cleanBrackets
+          })
+        });
+        const data = await resp.json();
+        if (data.updated_tracks) {
+          data.updated_tracks.forEach(ut => {
+            const idx = tracks.findIndex(t => t.filepath === ut.filepath);
+            if (idx !== -1) tracks[idx] = ut;
+          });
+          renderTrackList();
+          if (activeTrackIndex !== null) selectTrack(activeTrackIndex);
+          showToast(`Cleaned "${keyword}" across all fields & saved to disk!`);
+        }
+      } catch (err) {
+        showToast("Keyword removal error: " + err, true);
+      }
+    }
+
+    // Online Cover Lookup Modal
+    function openCoverModal() {
+      if (activeTrackIndex === null) return;
+      const t = tracks[activeTrackIndex];
+      const modal = document.getElementById('coverModal');
+      const searchBox = document.getElementById('coverSearchQuery');
+      searchBox.value = [t.artist, t.album || t.title].filter(Boolean).join(" ");
+      modal.classList.remove('hidden');
+      executeCoverSearch();
+    }
+
+    function closeCoverModal() {
+      document.getElementById('coverModal').classList.add('hidden');
+    }
+
+    async function executeCoverSearch() {
+      const query = document.getElementById('coverSearchQuery').value.trim();
+      const container = document.getElementById('coverResultsContainer');
+      container.innerHTML = `
+        <div class="col-span-full py-12 text-center text-gray-400">
+          <i class="fa-solid fa-spinner text-3xl text-amber-500 animate-spin mb-3"></i>
+          <p class="text-xs">Searching online for high-res artwork...</p>
+        </div>`;
+
+      try {
+        const t = tracks[activeTrackIndex] || {};
+        const resp = await fetch('/api/search-cover', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            query: query,
+            artist: t.artist,
+            album: t.album,
+            title: t.title
+          })
+        });
+        const data = await resp.json();
+        const results = data.results || [];
+
+        if (results.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-full py-12 text-center text-gray-500 text-xs">
+              <i class="fa-solid fa-face-frown text-3xl mb-2"></i>
+              <p>No cover art found online for "${query}". Try refining the artist or album name.</p>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = results.map(r => `
+          <div class="bg-[#242433] rounded-xl overflow-hidden border border-gray-700/80 hover:border-amber-500/80 group cursor-pointer transition shadow hover:shadow-lg flex flex-col" onclick="applyCover('${encodeURIComponent(r.artwork_url)}')">
+            <div class="aspect-square bg-black overflow-hidden relative">
+              <img src="${r.thumbnail_url || r.artwork_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-amber-400 font-bold text-xs transition">
+                <i class="fa-solid fa-check-circle text-2xl mr-1"></i> Apply
+              </div>
+            </div>
+            <div class="p-2.5 flex-1 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-bold text-white truncate" title="${r.album || r.title}">${r.album || r.title}</p>
+                <p class="text-[11px] text-gray-400 truncate">${r.artist}</p>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-gray-500 mt-2">
+                <span>${r.year || ''}</span>
+                <span class="text-amber-500/80 font-mono">${r.source}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        container.innerHTML = `<div class="col-span-full text-center text-rose-400 text-xs py-8">Search error: ${err}</div>`;
+      }
+    }
+
+    async function applyCover(encodedUrl) {
+      const imageUrl = decodeURIComponent(encodedUrl);
+      if (activeTrackIndex === null) return;
+      const t = tracks[activeTrackIndex];
+
+      showToast("Downloading and embedding cover art...");
+      try {
+        const resp = await fetch('/api/apply-cover', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            filepath: t.filepath,
+            image_url: imageUrl
+          })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          if (data.track) {
+            tracks[activeTrackIndex] = data.track;
+          } else if (data.cover_data_uri) {
+            t.cover_data_uri = data.cover_data_uri;
+            t.has_cover = true;
+          }
+          selectTrack(activeTrackIndex);
+          renderTrackList();
+          closeCoverModal();
+          if (tracks[activeTrackIndex].is_uploaded) {
+            showToast("Cover art embedded in Cleaned Folder! (Click 'Open Cleaned Folder' or Download)");
+          } else {
+            showToast("Cover art embedded permanently into disk file in-place!");
+          }
+        } else {
+          showToast(data.error || "Failed to embed cover art", true);
+        }
+      } catch (err) {
+        showToast("Error applying cover: " + err, true);
+      }
+    }
+  </script>
+</body>
+</html>
