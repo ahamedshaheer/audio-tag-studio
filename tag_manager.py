@@ -4,7 +4,8 @@ import time
 import base64
 import mutagen
 from mutagen.id3 import (
-    ID3, TIT2, TPE1, TALB, TPE2, TCON, TYER, TDRC, TRCK, COMM, APIC, ID3NoHeaderError
+    ID3, TIT1, TIT2, TIT3, TPE1, TALB, TPE2, TPE3, TCON, TYER, TDRC, TRCK,
+    COMM, APIC, TPUB, TCOM, TCOP, TENC, ID3NoHeaderError
 )
 from mutagen.flac import FLAC, Picture
 from mutagen.mp4 import MP4, MP4Cover
@@ -48,6 +49,13 @@ def read_tags(filepath: str) -> dict:
         "year": "",
         "track_number": "",
         "comment": "",
+        "subtitle": "",
+        "publisher": "",
+        "composer": "",
+        "conductor": "",
+        "copyright": "",
+        "encoded_by": "",
+        "grouping": "",
         "duration": 0,
         "format": os.path.splitext(filepath)[1].lower().lstrip("."),
         "has_cover": False,
@@ -93,6 +101,20 @@ def read_tags(filepath: str) -> dict:
                 info["year"] = str(id3["TDRC"])
             if "TRCK" in id3:
                 info["track_number"] = str(id3["TRCK"])
+            if "TIT3" in id3:
+                info["subtitle"] = str(id3["TIT3"])
+            if "TPUB" in id3:
+                info["publisher"] = str(id3["TPUB"])
+            if "TCOM" in id3:
+                info["composer"] = str(id3["TCOM"])
+            if "TPE3" in id3:
+                info["conductor"] = str(id3["TPE3"])
+            if "TCOP" in id3:
+                info["copyright"] = str(id3["TCOP"])
+            if "TENC" in id3:
+                info["encoded_by"] = str(id3["TENC"])
+            if "TIT1" in id3:
+                info["grouping"] = str(id3["TIT1"])
 
             for key in id3.keys():
                 if key.startswith("COMM"):
@@ -119,6 +141,13 @@ def read_tags(filepath: str) -> dict:
             info["year"] = flac.get("date", [""])[0]
             info["track_number"] = flac.get("tracknumber", [""])[0]
             info["comment"] = flac.get("comment", [""])[0]
+            info["subtitle"] = flac.get("subtitle", [""])[0]
+            info["publisher"] = flac.get("publisher", flac.get("organization", [""]))[0]
+            info["composer"] = flac.get("composer", [""])[0]
+            info["conductor"] = flac.get("conductor", [""])[0]
+            info["copyright"] = flac.get("copyright", [""])[0]
+            info["encoded_by"] = flac.get("encodedby", flac.get("encoder", [""]))[0]
+            info["grouping"] = flac.get("grouping", [""])[0]
 
             if flac.pictures:
                 pic = flac.pictures[0]
@@ -140,6 +169,13 @@ def read_tags(filepath: str) -> dict:
             if "trkn" in tags:
                 info["track_number"] = str(tags["trkn"][0][0])
             info["comment"] = tags.get("\xa9cmt", [""])[0]
+            info["subtitle"] = tags.get("\xa9des", [""])[0]
+            info["publisher"] = tags.get("\xa9pub", [""])[0]
+            info["composer"] = tags.get("\xa9wrt", [""])[0]
+            info["conductor"] = tags.get("\xa9con", [""])[0]
+            info["copyright"] = tags.get("cprt", [""])[0]
+            info["encoded_by"] = tags.get("\xa9enc", tags.get("\xa9too", [""]))[0]
+            info["grouping"] = tags.get("\xa9grp", [""])[0]
 
             covers = tags.get("covr", [])
             if covers:
@@ -160,6 +196,13 @@ def read_tags(filepath: str) -> dict:
             info["year"] = ogg.get("date", [""])[0]
             info["track_number"] = ogg.get("tracknumber", [""])[0]
             info["comment"] = ogg.get("comment", [""])[0]
+            info["subtitle"] = ogg.get("subtitle", [""])[0]
+            info["publisher"] = ogg.get("publisher", ogg.get("organization", [""]))[0]
+            info["composer"] = ogg.get("composer", [""])[0]
+            info["conductor"] = ogg.get("conductor", [""])[0]
+            info["copyright"] = ogg.get("copyright", [""])[0]
+            info["encoded_by"] = ogg.get("encodedby", ogg.get("encoder", [""]))[0]
+            info["grouping"] = ogg.get("grouping", [""])[0]
 
         if not info["title"]:
             info["title"] = os.path.splitext(os.path.basename(filepath))[0]
@@ -216,7 +259,48 @@ def write_tags(filepath: str, tags: dict) -> bool:
                 id3["TRCK"] = TRCK(encoding=enc, text=[str(tags["track_number"]).strip()])
 
             if "comment" in tags:
-                id3["COMM::eng"] = COMM(encoding=enc, lang="eng", desc="", text=[str(tags["comment"])])
+                val = str(tags["comment"]).strip()
+                if val:
+                    id3["COMM::eng"] = COMM(encoding=enc, lang="eng", desc="", text=[val])
+                else:
+                    for k in list(id3.keys()):
+                        if k.startswith("COMM"):
+                            del id3[k]
+
+            if "subtitle" in tags:
+                val = str(tags["subtitle"]).strip()
+                if val: id3["TIT3"] = TIT3(encoding=enc, text=[val])
+                else: id3.pop("TIT3", None)
+
+            if "publisher" in tags:
+                val = str(tags["publisher"]).strip()
+                if val: id3["TPUB"] = TPUB(encoding=enc, text=[val])
+                else: id3.pop("TPUB", None)
+
+            if "composer" in tags:
+                val = str(tags["composer"]).strip()
+                if val: id3["TCOM"] = TCOM(encoding=enc, text=[val])
+                else: id3.pop("TCOM", None)
+
+            if "conductor" in tags:
+                val = str(tags["conductor"]).strip()
+                if val: id3["TPE3"] = TPE3(encoding=enc, text=[val])
+                else: id3.pop("TPE3", None)
+
+            if "copyright" in tags:
+                val = str(tags["copyright"]).strip()
+                if val: id3["TCOP"] = TCOP(encoding=enc, text=[val])
+                else: id3.pop("TCOP", None)
+
+            if "encoded_by" in tags:
+                val = str(tags["encoded_by"]).strip()
+                if val: id3["TENC"] = TENC(encoding=enc, text=[val])
+                else: id3.pop("TENC", None)
+
+            if "grouping" in tags:
+                val = str(tags["grouping"]).strip()
+                if val: id3["TIT1"] = TIT1(encoding=enc, text=[val])
+                else: id3.pop("TIT1", None)
 
             # Force save ID3v2.3 AND ID3v1 (v1=2 guarantees ID3v1 is synchronized for legacy players)
             id3.save(filepath, v1=2, v2_version=3)
@@ -246,7 +330,48 @@ def write_tags(filepath: str, tags: dict) -> bool:
             if "track_number" in tags and str(tags["track_number"]).strip():
                 flac["tracknumber"] = [str(tags["track_number"]).strip()]
             if "comment" in tags:
-                flac["comment"] = [str(tags["comment"])]
+                val = str(tags["comment"]).strip()
+                if val: flac["comment"] = [val]
+                else: flac.pop("comment", None)
+
+            if "subtitle" in tags:
+                val = str(tags["subtitle"]).strip()
+                if val: flac["subtitle"] = [val]
+                else: flac.pop("subtitle", None)
+
+            if "publisher" in tags:
+                val = str(tags["publisher"]).strip()
+                if val:
+                    flac["publisher"] = [val]
+                    flac["organization"] = [val]
+                else:
+                    flac.pop("publisher", None)
+                    flac.pop("organization", None)
+
+            if "composer" in tags:
+                val = str(tags["composer"]).strip()
+                if val: flac["composer"] = [val]
+                else: flac.pop("composer", None)
+
+            if "conductor" in tags:
+                val = str(tags["conductor"]).strip()
+                if val: flac["conductor"] = [val]
+                else: flac.pop("conductor", None)
+
+            if "copyright" in tags:
+                val = str(tags["copyright"]).strip()
+                if val: flac["copyright"] = [val]
+                else: flac.pop("copyright", None)
+
+            if "encoded_by" in tags:
+                val = str(tags["encoded_by"]).strip()
+                if val: flac["encodedby"] = [val]
+                else: flac.pop("encodedby", None)
+
+            if "grouping" in tags:
+                val = str(tags["grouping"]).strip()
+                if val: flac["grouping"] = [val]
+                else: flac.pop("grouping", None)
             flac.save()
             try:
                 os.utime(filepath, None)
@@ -278,7 +403,44 @@ def write_tags(filepath: str, tags: dict) -> bool:
                 except ValueError:
                     pass
             if "comment" in tags:
-                tags_map["\xa9cmt"] = [str(tags["comment"])]
+                val = str(tags["comment"]).strip()
+                if val: tags_map["\xa9cmt"] = [val]
+                else: tags_map.pop("\xa9cmt", None)
+
+            if "subtitle" in tags:
+                val = str(tags["subtitle"]).strip()
+                if val: tags_map["\xa9des"] = [val]
+                else: tags_map.pop("\xa9des", None)
+
+            if "publisher" in tags:
+                val = str(tags["publisher"]).strip()
+                if val: tags_map["\xa9pub"] = [val]
+                else: tags_map.pop("\xa9pub", None)
+
+            if "composer" in tags:
+                val = str(tags["composer"]).strip()
+                if val: tags_map["\xa9wrt"] = [val]
+                else: tags_map.pop("\xa9wrt", None)
+
+            if "conductor" in tags:
+                val = str(tags["conductor"]).strip()
+                if val: tags_map["\xa9con"] = [val]
+                else: tags_map.pop("\xa9con", None)
+
+            if "copyright" in tags:
+                val = str(tags["copyright"]).strip()
+                if val: tags_map["cprt"] = [val]
+                else: tags_map.pop("cprt", None)
+
+            if "encoded_by" in tags:
+                val = str(tags["encoded_by"]).strip()
+                if val: tags_map["\xa9enc"] = [val]
+                else: tags_map.pop("\xa9enc", None)
+
+            if "grouping" in tags:
+                val = str(tags["grouping"]).strip()
+                if val: tags_map["\xa9grp"] = [val]
+                else: tags_map.pop("\xa9grp", None)
             mp4.save()
             try:
                 os.utime(filepath, None)
@@ -303,7 +465,48 @@ def write_tags(filepath: str, tags: dict) -> bool:
             if "track_number" in tags and str(tags["track_number"]).strip():
                 ogg["tracknumber"] = [str(tags["track_number"]).strip()]
             if "comment" in tags:
-                ogg["comment"] = [str(tags["comment"])]
+                val = str(tags["comment"]).strip()
+                if val: ogg["comment"] = [val]
+                else: ogg.pop("comment", None)
+
+            if "subtitle" in tags:
+                val = str(tags["subtitle"]).strip()
+                if val: ogg["subtitle"] = [val]
+                else: ogg.pop("subtitle", None)
+
+            if "publisher" in tags:
+                val = str(tags["publisher"]).strip()
+                if val:
+                    ogg["publisher"] = [val]
+                    ogg["organization"] = [val]
+                else:
+                    ogg.pop("publisher", None)
+                    ogg.pop("organization", None)
+
+            if "composer" in tags:
+                val = str(tags["composer"]).strip()
+                if val: ogg["composer"] = [val]
+                else: ogg.pop("composer", None)
+
+            if "conductor" in tags:
+                val = str(tags["conductor"]).strip()
+                if val: ogg["conductor"] = [val]
+                else: ogg.pop("conductor", None)
+
+            if "copyright" in tags:
+                val = str(tags["copyright"]).strip()
+                if val: ogg["copyright"] = [val]
+                else: ogg.pop("copyright", None)
+
+            if "encoded_by" in tags:
+                val = str(tags["encoded_by"]).strip()
+                if val: ogg["encodedby"] = [val]
+                else: ogg.pop("encodedby", None)
+
+            if "grouping" in tags:
+                val = str(tags["grouping"]).strip()
+                if val: ogg["grouping"] = [val]
+                else: ogg.pop("grouping", None)
             ogg.save()
             try:
                 os.utime(filepath, None)
@@ -385,20 +588,187 @@ def embed_cover_art(filepath: str, image_bytes: bytes, mime_type: str = "image/j
 
 
 def remove_keyword_from_file(filepath: str, keyword: str, case_sensitive: bool = False, clean_brackets: bool = True) -> dict:
-    current = read_tags(filepath)
-    if current.get("error"):
-        return current
+    """
+    Comprehensively scrubs a keyword from EVERY metadata field in the audio file:
+    Title, Artist, Album, Subtitle (TIT3), Publisher (TPUB), Composers (TCOM),
+    Conductors (TPE3), Copyright (TCOP), Encoded by (TENC), Grouping (TIT1),
+    Comments (COMM), URLs (W*), User-defined tags (TXXX), and Lyrics (USLT).
+    Any frame whose content becomes empty after keyword removal is completely deleted.
+    """
+    if not os.path.isfile(filepath) or not keyword:
+        return read_tags(filepath)
 
-    updated = {
-        "title": clean_text(current.get("title", ""), keyword, case_sensitive, clean_brackets),
-        "artist": clean_text(current.get("artist", ""), keyword, case_sensitive, clean_brackets),
-        "album": clean_text(current.get("album", ""), keyword, case_sensitive, clean_brackets),
-        "album_artist": clean_text(current.get("album_artist", ""), keyword, case_sensitive, clean_brackets),
-        "genre": clean_text(current.get("genre", ""), keyword, case_sensitive, clean_brackets),
-        "year": current.get("year", ""),
-        "track_number": current.get("track_number", ""),
-        "comment": clean_text(current.get("comment", ""), keyword, case_sensitive, clean_brackets),
-    }
+    ext = os.path.splitext(filepath)[1].lower()
+    flags = 0 if case_sensitive else re.IGNORECASE
+    escaped_kw = re.escape(keyword.strip())
 
-    write_tags(filepath, updated)
+    try:
+        if ext == ".mp3":
+            try:
+                id3 = ID3(filepath)
+            except ID3NoHeaderError:
+                return read_tags(filepath)
+
+            keys_to_delete = []
+
+            for key in list(id3.keys()):
+                # Keep album cover artwork intact
+                if key.startswith("APIC"):
+                    continue
+
+                frame = id3[key]
+
+                # 1. Text frames (T* except TXXX)
+                if key.startswith("T") and not key.startswith("TXXX"):
+                    if hasattr(frame, "text") and isinstance(frame.text, list):
+                        new_text = []
+                        for s in frame.text:
+                            cleaned = clean_text(str(s), keyword, case_sensitive, clean_brackets)
+                            if cleaned:
+                                new_text.append(cleaned)
+                        if new_text:
+                            frame.text = new_text
+                        else:
+                            keys_to_delete.append(key)
+
+                # 2. User-defined text (TXXX)
+                elif key.startswith("TXXX"):
+                    desc_str = str(getattr(frame, "desc", ""))
+                    if re.search(escaped_kw, desc_str, flags=flags):
+                        keys_to_delete.append(key)
+                    elif hasattr(frame, "text") and isinstance(frame.text, list):
+                        new_text = []
+                        for s in frame.text:
+                            cleaned = clean_text(str(s), keyword, case_sensitive, clean_brackets)
+                            if cleaned:
+                                new_text.append(cleaned)
+                        if new_text:
+                            frame.text = new_text
+                        else:
+                            keys_to_delete.append(key)
+
+                # 3. URL frames (W* and WXXX)
+                elif key.startswith("W"):
+                    url_val = str(getattr(frame, "url", getattr(frame, "text", "")))
+                    desc_val = str(getattr(frame, "desc", ""))
+                    if re.search(escaped_kw, url_val, flags=flags) or re.search(escaped_kw, desc_val, flags=flags):
+                        keys_to_delete.append(key)
+
+                # 4. Comments (COMM)
+                elif key.startswith("COMM"):
+                    if hasattr(frame, "text") and isinstance(frame.text, list):
+                        new_text = []
+                        for s in frame.text:
+                            cleaned = clean_text(str(s), keyword, case_sensitive, clean_brackets)
+                            if cleaned:
+                                new_text.append(cleaned)
+                        if new_text:
+                            frame.text = new_text
+                        else:
+                            keys_to_delete.append(key)
+
+                # 5. Lyrics (USLT)
+                elif key.startswith("USLT"):
+                    text_val = str(getattr(frame, "text", ""))
+                    cleaned = clean_text(text_val, keyword, case_sensitive, clean_brackets)
+                    if cleaned:
+                        frame.text = cleaned
+                    else:
+                        keys_to_delete.append(key)
+
+            for k in keys_to_delete:
+                id3.pop(k, None)
+
+            id3.save(filepath, v1=2, v2_version=3)
+            try:
+                os.utime(filepath, None)
+            except Exception:
+                pass
+
+        elif ext == ".flac":
+            flac = FLAC(filepath)
+            keys_to_delete = []
+            for key in list(flac.keys()):
+                cleaned_vals = []
+                for val in flac[key]:
+                    cleaned = clean_text(str(val), keyword, case_sensitive, clean_brackets)
+                    if cleaned:
+                        cleaned_vals.append(cleaned)
+                if cleaned_vals:
+                    flac[key] = cleaned_vals
+                else:
+                    keys_to_delete.append(key)
+
+            for k in keys_to_delete:
+                flac.pop(k, None)
+
+            flac.save()
+            try:
+                os.utime(filepath, None)
+            except Exception:
+                pass
+
+        elif ext in [".m4a", ".mp4"]:
+            mp4 = MP4(filepath)
+            if mp4.tags:
+                keys_to_delete = []
+                for key in list(mp4.tags.keys()):
+                    if key in ("covr", "trkn", "disk", "tmpo", "cpil", "pgap"):
+                        continue
+                    val = mp4.tags[key]
+                    if isinstance(val, list):
+                        cleaned_vals = []
+                        for item in val:
+                            if isinstance(item, str):
+                                cleaned = clean_text(item, keyword, case_sensitive, clean_brackets)
+                                if cleaned:
+                                    cleaned_vals.append(cleaned)
+                            else:
+                                cleaned_vals.append(item)
+                        if cleaned_vals:
+                            mp4.tags[key] = cleaned_vals
+                        else:
+                            keys_to_delete.append(key)
+                    elif isinstance(val, str):
+                        cleaned = clean_text(val, keyword, case_sensitive, clean_brackets)
+                        if cleaned:
+                            mp4.tags[key] = cleaned
+                        else:
+                            keys_to_delete.append(key)
+
+                for k in keys_to_delete:
+                    mp4.tags.pop(k, None)
+
+                mp4.save()
+                try:
+                    os.utime(filepath, None)
+                except Exception:
+                    pass
+
+        elif ext == ".ogg":
+            ogg = OggVorbis(filepath)
+            keys_to_delete = []
+            for key in list(ogg.keys()):
+                cleaned_vals = []
+                for val in ogg[key]:
+                    cleaned = clean_text(str(val), keyword, case_sensitive, clean_brackets)
+                    if cleaned:
+                        cleaned_vals.append(cleaned)
+                if cleaned_vals:
+                    ogg[key] = cleaned_vals
+                else:
+                    keys_to_delete.append(key)
+
+            for k in keys_to_delete:
+                ogg.pop(k, None)
+
+            ogg.save()
+            try:
+                os.utime(filepath, None)
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"Error removing keyword from {filepath}: {e}")
+
     return read_tags(filepath)

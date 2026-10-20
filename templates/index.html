@@ -82,23 +82,30 @@
       <span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
         <i class="fa-solid fa-eraser mr-1.5"></i> Global Keyword Remover
       </span>
-      <span class="text-xs text-gray-400 hidden sm:inline">Strips keyword across Title, Artist, Album, Genre & Comments</span>
+      <span class="text-xs text-gray-400 hidden lg:inline">Deep-scrubs across Title, Subtitle, Publisher, Composers, Conductors, Copyright, Encoded By, URLs & All Tags</span>
     </div>
 
-    <div class="flex items-center gap-3 flex-1 max-w-2xl justify-end">
-      <div class="relative flex-1 max-w-md">
+    <div class="flex items-center gap-3 flex-1 max-w-3xl justify-end flex-wrap sm:flex-nowrap">
+      <div class="flex items-center gap-1.5 text-xs text-gray-400 mr-1 hidden md:flex">
+        <span class="text-[11px] text-gray-500 font-semibold">Quick clean:</span>
+        <button onclick="quickFillKeyword('MassTamilan')" class="px-2 py-0.5 rounded bg-gray-800 hover:bg-amber-500 hover:text-black text-amber-400/90 text-[11px] transition border border-gray-700">MassTamilan</button>
+        <button onclick="quickFillKeyword('SongsLover')" class="px-2 py-0.5 rounded bg-gray-800 hover:bg-amber-500 hover:text-black text-amber-400/90 text-[11px] transition border border-gray-700">SongsLover</button>
+        <button onclick="quickFillKeyword('320kbps')" class="px-2 py-0.5 rounded bg-gray-800 hover:bg-amber-500 hover:text-black text-amber-400/90 text-[11px] transition border border-gray-700">320kbps</button>
+      </div>
+
+      <div class="relative flex-1 min-w-[200px] max-w-md">
         <i class="fa-solid fa-tag absolute left-3 top-2.5 text-gray-500 text-xs"></i>
-        <input id="keywordInput" type="text" placeholder="Type keyword to remove (e.g. [SongsLover.com], 320kbps, feat)..." 
+        <input id="keywordInput" type="text" placeholder="Type keyword to purge (e.g. MassTamilan, SongsLover)..." 
           class="w-full bg-[#14141a] border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-amber-300 placeholder-gray-500 focus:outline-none focus:border-amber-500"
           onkeydown="if(event.key==='Enter') removeKeyword()">
       </div>
 
-      <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+      <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer whitespace-nowrap">
         <input type="checkbox" id="cleanBracketsCheckbox" checked class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
         Clean brackets/dashes
       </label>
 
-      <button onclick="removeKeyword()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5 transition active:scale-95">
+      <button onclick="removeKeyword()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5 transition active:scale-95 whitespace-nowrap">
         <i class="fa-solid fa-trash-can"></i> Remove from All Areas
       </button>
     </div>
@@ -242,9 +249,61 @@
               <label class="block text-xs font-medium text-gray-400 mb-1">Comment</label>
               <textarea id="editComment" rows="2" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
             </div>
+
+            <!-- Extended Origin & Credits Section (Subtitle, Publisher, etc.) -->
+            <div class="col-span-2 border-t border-gray-800/80 pt-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fa-solid fa-tags text-blue-400"></i> Origin, Credits & Subtitle
+                </span>
+                <button type="button" onclick="clearPromoFields()" class="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline">
+                  <i class="fa-solid fa-broom"></i> Clear Promo Fields
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Subtitle</label>
+                  <input id="editSubtitle" type="text" placeholder="Subtitle (e.g. MassTamilan, Cleaned, etc.)" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Publisher</label>
+                  <input id="editPublisher" type="text" placeholder="Publisher / Record Label" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Composers</label>
+                  <input id="editComposer" type="text" placeholder="Music Director / Composer" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Conductors</label>
+                  <input id="editConductor" type="text" placeholder="Conductor / Performer" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Copyright</label>
+                  <input id="editCopyright" type="text" placeholder="Copyright message" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Encoded by</label>
+                  <input id="editEncodedBy" type="text" placeholder="Encoder" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="col-span-2">
+                  <label class="block text-[11px] font-medium text-gray-400 mb-1">Group Description (Grouping)</label>
+                  <input id="editGrouping" type="text" placeholder="Content Group Description" class="w-full bg-[#14141b] border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="flex justify-end pt-2">
+          <div class="flex items-center justify-between pt-2 border-t border-gray-800">
+            <span class="text-[10px] text-gray-500">
+              <i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> Leaving any origin field empty deletes it from file tags.
+            </span>
             <button onclick="saveActiveProperties()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-2 transition active:scale-95">
               <i class="fa-solid fa-floppy-disk"></i> Save Song Properties
             </button>
@@ -564,6 +623,13 @@
       document.getElementById('editYear').value = t.year || '';
       document.getElementById('editTrack').value = t.track_number || '';
       document.getElementById('editComment').value = t.comment || '';
+      document.getElementById('editSubtitle').value = t.subtitle || '';
+      document.getElementById('editPublisher').value = t.publisher || '';
+      document.getElementById('editComposer').value = t.composer || '';
+      document.getElementById('editConductor').value = t.conductor || '';
+      document.getElementById('editCopyright').value = t.copyright || '';
+      document.getElementById('editEncodedBy').value = t.encoded_by || '';
+      document.getElementById('editGrouping').value = t.grouping || '';
 
       const coverImg = document.getElementById('activeCoverImg');
       const placeholder = document.getElementById('activeCoverPlaceholder');
@@ -596,6 +662,20 @@
       renderTrackList();
     }
 
+    function clearPromoFields() {
+      document.getElementById('editSubtitle').value = '';
+      document.getElementById('editPublisher').value = '';
+      document.getElementById('editCopyright').value = '';
+      document.getElementById('editEncodedBy').value = '';
+      document.getElementById('editGrouping').value = '';
+      showToast("Cleared promotional fields! Click 'Save Song Properties' to commit changes.");
+    }
+
+    function quickFillKeyword(kw) {
+      document.getElementById('keywordInput').value = kw;
+      removeKeyword();
+    }
+
     async function saveActiveProperties() {
       if (activeTrackIndex === null) return;
       const t = tracks[activeTrackIndex];
@@ -609,7 +689,14 @@
           genre: document.getElementById('editGenre').value,
           year: document.getElementById('editYear').value,
           track_number: document.getElementById('editTrack').value,
-          comment: document.getElementById('editComment').value
+          comment: document.getElementById('editComment').value,
+          subtitle: document.getElementById('editSubtitle').value,
+          publisher: document.getElementById('editPublisher').value,
+          composer: document.getElementById('editComposer').value,
+          conductor: document.getElementById('editConductor').value,
+          copyright: document.getElementById('editCopyright').value,
+          encoded_by: document.getElementById('editEncodedBy').value,
+          grouping: document.getElementById('editGrouping').value
         }
       };
 
