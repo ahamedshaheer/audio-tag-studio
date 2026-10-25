@@ -11,6 +11,8 @@ import tag_manager
 import cover_lookup
 
 app = Flask(__name__, template_folder="templates")
+ap = app  # Fallback alias for 'gunicorn server:ap'
+application = app  # Standard WSGI fallback alias
 app.config["MAX_CONTENT_LENGTH"] = 800 * 1024 * 1024  # 800 MB max
 
 UPLOAD_FOLDER = os.path.normpath(os.path.join(os.path.dirname(__file__), "uploads"))
