@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.8+](https://img.shields.io/badge/python-3.8+-brightgreen.svg)](https://www.python.org/)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 A lightweight, high-performance audio metadata editor and album art fetcher designed with two hyper-focused core workflows:
 1. **Adjust song properties & strip promotional keywords/watermarks across all fields in 1 click.**
@@ -87,6 +88,20 @@ The app will launch and automatically open **`http://127.0.0.1:5000`** in your d
 
 ---
 
+## Deploy to the Cloud (Free on Render)
+
+You can run Audio Tag Studio live on the web with free hosting on [Render.com](https://render.com):
+
+1. Click the **Deploy to Render** button above, or go to [dashboard.render.com](https://dashboard.render.com).
+2. Click **New +** &rarr; **Web Service** &rarr; Connect your GitHub repository (`audio-tag-studio`).
+3. Render automatically detects `render.yaml` and sets:
+   * **Runtime**: `Python`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `gunicorn server:app`
+4. Click **Deploy Web Service**. In ~1-2 minutes, your live online app URL will be ready!
+
+---
+
 ## Project Structure
 
 ```
@@ -99,6 +114,8 @@ audio-tag-studio/
 ├── uploads/            # Working directory for uploaded files (.gitkeep included)
 ├── run.bat             # Windows 1-click batch launcher
 ├── run.sh              # macOS/Linux bash launcher
+├── Procfile            # Web process command for Render / Heroku
+├── render.yaml         # Render.com Blueprint deployment spec
 ├── requirements.txt    # Python package dependencies
 ├── LICENSE             # MIT Public License
 └── README.md           # Documentation

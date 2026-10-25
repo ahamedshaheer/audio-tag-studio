@@ -191,7 +191,10 @@ def open_folder_in_file_manager(folder_path):
     elif sys.platform == "darwin":
         subprocess.Popen(["open", norm])
     else:  # Linux / Unix
-        subprocess.Popen(["xdg-open", norm])
+        try:
+            subprocess.Popen(["xdg-open", norm])
+        except Exception:
+            pass
 
 
 def reveal_file_in_file_manager(filepath):
@@ -204,7 +207,10 @@ def reveal_file_in_file_manager(filepath):
     elif sys.platform == "darwin":
         subprocess.Popen(["open", "-R", norm])
     else:  # Linux
-        open_folder_in_file_manager(os.path.dirname(norm))
+        try:
+            open_folder_in_file_manager(os.path.dirname(norm))
+        except Exception:
+            pass
 
 
 @app.route("/api/open-in-explorer", methods=["POST"])
@@ -274,9 +280,11 @@ def open_browser():
 
 
 if __name__ == "__main__":
-    port = 5000
+    port = int(os.environ.get("PORT", 5000))
+    host = "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1"
     print("\n=======================================================")
-    print(f"[*] Audio Tag Studio running at: http://127.0.0.1:{port}")
+    print(f"[*] Audio Tag Studio running at: http://{host}:{port}")
     print("=======================================================\n")
-    threading.Timer(1.2, open_browser).start()
-    app.run(host="127.0.0.1", port=port, debug=False)
+    if host == "127.0.0.1":
+        threading.Timer(1.2, open_browser).start()
+    app.run(host=host, port=port, debug=False)
